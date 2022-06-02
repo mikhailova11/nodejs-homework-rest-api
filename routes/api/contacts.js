@@ -1,25 +1,11 @@
 const express = require('express')
-const Joi = require('joi');
-
-const schema = Joi.object({
-  name: Joi.string().min(3).max(30).required(),
-  email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }),
-  phone: Joi.string().min(9).max(30).required()
-})
-
-const {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-} = require('../../models/contacts')
+const {Contacts, schemaForPost, schemaForPatch, validate} = require('../../models/contacts')
 
 const router = express.Router()
 
 router.get('/', async (req, res, next) => {
   try {
-    res.json(await listContacts())
+    res.json(await Contacts.find())
   } catch (error) {
     next(error)
   }
@@ -28,7 +14,7 @@ router.get('/', async (req, res, next) => {
 router.get('/:contactId', async (req, res, next) => {
   try {
     const {contactId} = req.params
-    const contactInfo = await getContactById(contactId)
+    const contactInfo = await Contacts.findOne({_id : contactId})
       if(!contactInfo){
       return res.status(404).json({"message": "Not found"})
     }
@@ -38,19 +24,11 @@ router.get('/:contactId', async (req, res, next) => {
   }
 })
 
-router.post('/', async (req, res, next) => {
+router.post('/', validate(schemaForPost), async (req, res, next) => {
   try {
-    const {error} = schema.validate(req.body)
-    if(error){
-      const er = new Error();
-      er.status = 400;
-      er.message = error.message;
-      throw er;
-    }
-
     const {name, email, phone} = req.body
-    
-    res.status(201).json(await addContact({name, email, phone}))
+
+    res.status(201).json(await Contacts.create({name, email, phone}))
   } catch (error) {
     next(error)
   }
@@ -60,7 +38,7 @@ router.post('/', async (req, res, next) => {
 router.delete('/:contactId', async (req, res, next) => {
   try {
     const {contactId} = req.params;
-    const contactInfo = await removeContact(contactId);
+    const contactInfo = await Contacts.remove({_id : contactId});
   
     if(!contactInfo){
      res.status(404).json({"message": "Not found"}) 
@@ -74,16 +52,9 @@ router.delete('/:contactId', async (req, res, next) => {
 
 router.put('/:contactId', async (req, res, next) => {
   try {
-    const {error} = schema.validate(req.body)
-
-    if(error){
-      const er = new Error();
-      er.status = 400;
-      er.message = {"message": "missing fields"};
-      throw er;
-    } 
     const {contactId} = req.params
-    const putContact = await updateContact(contactId, req.body)
+
+    const putContact = await Contacts.findByIdAndUpdate({_id : contactId}, req.body, { new: true })
     if(!putContact){
       res.status(400).json({"message": "missing fields"})
     } else {
@@ -95,6 +66,21 @@ router.put('/:contactId', async (req, res, next) => {
   } catch (error) {
     next(error)
   }
+})
+
+router.patch('/:contactId/favorite', validate(schemaForPatch), async (req, res, next) => {
+  try {
+    const {contactId} = req.params
+
+    const contactInfo = await Contacts.findByIdAndUpdate({_id : contactId}, req.body, { new: true })
+    if(!contactInfo){
+      res.status(404).json({"message": "Not found"})
+    } 
+    return res.json(contactInfo)
+    
+} catch (error) {
+  next(error)
+}
 })
 
 module.exports = router
