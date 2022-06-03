@@ -1,69 +1,51 @@
-const { readFile, writeFile } = require('fs/promises');
-const path = require('path');
+const {Schema,  model} = require('mongoose');
+const Joi = require('joi');
 
+const schemaForPost= Joi.object({
+  name: Joi.string().min(3).max(30).required(),
+  email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
+  phone: Joi.string().min(9).max(30).required(),
+  favorite: Joi.bool()
+    
+})
 
+const schemaForPatch = Joi.object({
+  favorite: Joi.bool().required()   
+})
 
-
-const contactsPath = path.join(__dirname, './contacts.json');
-
-
-const listContacts = async () => {
-  const listContactsString = await readFile(contactsPath, 'utf8')
-  return JSON.parse(listContactsString)
-
-}
-
-const getContactById = async (contactId) => {
-  const allContact = await listContacts();
-  const contactById = allContact.find(contact =>contact.id.toString() === contactId)
-  return contactById || null;
-}
-
-const removeContact = async (contactId) => {
-const allContact = await listContacts();
-const index = allContact.findIndex(({id}) => id === contactId)
-const deleteContact = allContact[index];
-
-if(index !== -1){
-allContact.splice(index,1);
-await writeFile(contactsPath, JSON.stringify(allContact));
-return deleteContact;
-}  else {
-  return null
-}
-}
-
-
-const addContact = async (body) => {
-  const {name, email, phone} = body;
-  const allContact = await listContacts();
-  const newContact = {id: (allContact.length+1).toString(), name, email, phone }
-  allContact.push(newContact);
-  await writeFile(contactsPath, JSON.stringify(allContact));
-  return newContact;
-}
-
-const updateContact = async (contactId, body) => {
-  const {name, email, phone} = body;
-  const allContact = await listContacts();
-  const contactIndex = await allContact.findIndex((data) => data.id === contactId)
-
-  if(contactIndex !== -1){
-    allContact[contactIndex].name = name;
-    allContact[contactIndex].email = email;
-    allContact[contactIndex].phone = phone;
-
-    await writeFile(contactsPath, JSON.stringify(allContact));
-    return allContact[contactIndex];
-  }  else {
-    return null
+const validate = (schema) =>{
+  return (req, res, next) => {
+    const {error } = schema.validate(req.body)
+    if(error){
+      const er = new Error();
+      er.status = 400;
+      er.message = error.message;
+      throw er;
+    }
+    next() 
   }
 }
 
-module.exports = {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-}
+const schema = new Schema(  {
+  name: {
+    type: String,
+    required: [true, 'Set name for contact'],
+  },
+  email: {
+    type: String,
+  },
+  phone: {
+    type: String,
+  },
+  favorite: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+
+const Contacts = model('contacts', schema)
+module.exports = {Contacts, 
+  schemaForPost, 
+  schemaForPatch, 
+  validate};
