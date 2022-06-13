@@ -13,18 +13,6 @@ const schemaForPatch = Joi.object({
   favorite: Joi.bool().required()   
 })
 
-const validate = (schema) =>{
-  return (req, res, next) => {
-    const {error } = schema.validate(req.body)
-    if(error){
-      const er = new Error();
-      er.status = 400;
-      er.message = error.message;
-      throw er;
-    }
-    next() 
-  }
-}
 
 const schema = new Schema(  {
   name: {
@@ -44,8 +32,9 @@ const schema = new Schema(  {
 })
 
 
+
 const Contacts = model('contacts', schema)
 module.exports = {Contacts, 
   schemaForPost, 
   schemaForPatch, 
-  validate};
+  };

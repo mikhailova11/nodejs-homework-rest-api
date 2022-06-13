@@ -1,17 +1,24 @@
 const express = require('express')
-const {Contacts, schemaForPost, schemaForPatch, validate} = require('../../models/contacts')
+const {Contacts, schemaForPost, schemaForPatch} = require('../../models/contacts')
+const {validate} = require('../../middlewares/validate')
+const { auth } = require('../../middlewares/auth')
 
 const router = express.Router()
 
-router.get('/', async (req, res, next) => {
+router.get('/', auth, async (req, res, next) => {
   try {
-    res.json(await Contacts.find())
+    const {page, limit} = req.query
+    const skiped = (page-1)*limit
+    const skip = skiped < 0? 0:skiped
+
+    res.json(await Contacts.find({},{},{skip, limit: +limit}))
+    
   } catch (error) {
     next(error)
   }
 })
 
-router.get('/:contactId', async (req, res, next) => {
+router.get('/:contactId', auth, async (req, res, next) => {
   try {
     const {contactId} = req.params
     const contactInfo = await Contacts.findOne({_id : contactId})
@@ -24,7 +31,7 @@ router.get('/:contactId', async (req, res, next) => {
   }
 })
 
-router.post('/', validate(schemaForPost), async (req, res, next) => {
+router.post('/', auth,  validate(schemaForPost), async (req, res, next) => {
   try {
     const {name, email, phone} = req.body
 
@@ -35,7 +42,7 @@ router.post('/', validate(schemaForPost), async (req, res, next) => {
  
 })
 
-router.delete('/:contactId', async (req, res, next) => {
+router.delete('/:contactId', auth, async (req, res, next) => {
   try {
     const {contactId} = req.params;
     const contactInfo = await Contacts.remove({_id : contactId});
@@ -50,7 +57,7 @@ router.delete('/:contactId', async (req, res, next) => {
   }
 })
 
-router.put('/:contactId', async (req, res, next) => {
+router.put('/:contactId', auth, async (req, res, next) => {
   try {
     const {contactId} = req.params
 
@@ -68,7 +75,7 @@ router.put('/:contactId', async (req, res, next) => {
   }
 })
 
-router.patch('/:contactId/favorite', validate(schemaForPatch), async (req, res, next) => {
+router.patch('/:contactId/favorite', auth, validate(schemaForPatch),  async (req, res, next) => {
   try {
     const {contactId} = req.params
 
