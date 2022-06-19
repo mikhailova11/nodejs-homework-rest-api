@@ -1,5 +1,8 @@
 const {Schema,  model, SchemaTypes} = require('mongoose');
 const Joi = require('joi');
+const gravatar = require('gravatar');
+
+
 
 const schemaRegister = Joi.object({
   email: Joi.string().required(),
@@ -36,7 +39,14 @@ const schema = new Schema(  {
     owner: {
         type: SchemaTypes.ObjectId,
         ref: 'user',
-      }
+      },
+    avatarURL: {
+      type: String,
+      default: function () {
+        return gravatar.url(this.email, {}, true);
+      },
+    }
+      
   }, {timestamps: true})
 
 
