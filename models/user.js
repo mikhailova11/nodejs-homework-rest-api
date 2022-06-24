@@ -1,6 +1,7 @@
 const {Schema,  model, SchemaTypes} = require('mongoose');
 const Joi = require('joi');
 const gravatar = require('gravatar');
+const { v4 } = require('uuid');
 
 
 
@@ -42,10 +43,17 @@ const schema = new Schema(  {
       },
     avatarURL: {
       type: String,
-      default: function () {
-        return gravatar.url(this.email, {}, true);
+      default: function () {return gravatar.url(this.email, {}, true)},
+    },
+    verify: {
+        type: Boolean,
+        default: false,
       },
-    }
+    verificationToken: {
+        type: String,
+        required: [true, 'Verify token is required'],
+        default: function () {return v4()}
+      },
       
   }, {timestamps: true})
 
